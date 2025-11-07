@@ -27,11 +27,11 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 #         data_list.append(data)
 #     return data_list
 ###################################################
-######## else maske manual torch dataset ##########
+######## else maske custom torch dataset ##########
 
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
-class make_snapshot_data(Dataset):
+class make_snapshot_data(Dataset):   ##Changed
     def __init__(self,input_data, target_vals, mask):
         self.input = input_data
         self.target = target_vals
@@ -46,14 +46,14 @@ class make_snapshot_data(Dataset):
     
 #################################################
 
-def evaluate_snapshot(model, loader, loss_function):
+def evaluate_snapshot(model, loader, loss_function): ##Changed
     model.eval()
     batch_mse = 0
     with torch.no_grad():
-        for x,ys,mask in loader:
-            x = x.to(device)
-            ys = ys.to(device)
-            mask = mask.to(device)
+        for x,ys,mask in loader:  ##NEW
+            x = x.to(device)   ##NEW
+            ys = ys.to(device)  ##NEW
+            mask = mask.to(device)  ##NEW
 
             ys_pred = model(x)
             if mask.sum() == 0:
@@ -69,7 +69,7 @@ def train_snapshot_model(model, train_loader, val_loader=None, lr=1e-3, wd=1e-5,
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=wd)
     best_val_mse = np.inf
     best_state = None
-    MSE_loss = WeightedMSE(reduction = reduction)
+    MSE_loss = WeightedMSE(reduction = reduction)  ##NEW
 
     for ep in range(1, epochs + 1):
         model.train()
@@ -84,13 +84,13 @@ def train_snapshot_model(model, train_loader, val_loader=None, lr=1e-3, wd=1e-5,
             out = model(x)
             if mask.sum() == 0:
                 continue
-            loss = MSE_loss(out, y, mask, print_loss = True)
+            loss = MSE_loss(out, y, mask, print_loss = True)  ##NEW
             loss.backward()
             optimizer.step()
             total_loss += loss.item()
         # validation
         if val_loader is not None:
-            val_mse = evaluate_snapshot(model, val_loader, MSE_loss)
+            val_mse = evaluate_snapshot(model, val_loader, MSE_loss)  ##Changed
             if val_mse < best_val_mse:
                 best_val_mse = val_mse
                 best_state = model.state_dict()
@@ -106,25 +106,25 @@ def train_snapshot_model(model, train_loader, val_loader=None, lr=1e-3, wd=1e-5,
     return model
 
 
-def train_model(data_train, data_val,width = 20, num_layers = 1, modes1 = None, modes2 = None, batch_size = 2, n_epochs=200, lr=1e-3, wd=1e-5, reduction = 'mean_snap',save_path=None):
+def train_model(data_train, data_val,width = 20, num_layers = 1, modes1 = None, modes2 = None, batch_size = 2, n_epochs=200, lr=1e-3, wd=1e-5, reduction = 'mean_snap',save_path=None):  ##Changed
     input_train, target_train, mask = data_train
     val_input_train, target_val, val_mask  = data_val
 
-    T, C, S, D = input_train.shape
-    if modes1 is None:
-        modes1  = S
-    if modes2 is None:
+    T, C, S, D = input_train.shape  
+    if modes1 is None: ##NEW
+        modes1  = S  
+    if modes2 is None:  ##NEW
         modes2 = np.floor(D/2) + 1 
     else:
         assert modes2 <= np.floor(D/2) + 1 
 
-    train_dataset = make_snapshot_data(input_train, target_train, mask)
-    val_dataset = make_snapshot_data(val_input_train, target_val, val_mask)
+    train_dataset = make_snapshot_data(input_train, target_train, mask)  ##Changed
+    val_dataset = make_snapshot_data(val_input_train, target_val, val_mask)  ##Changed
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
-    model =  FNO2d(C, width , modes1, modes2, num_layers  =num_layers)
-    model = train_snapshot_model(model, train_loader, val_loader, epochs=n_epochs, lr = lr, wd = wd,  reduction = reduction, save_path=save_path)
+    model =  FNO2d(C, width , modes1, modes2, num_layers  =num_layers)  ##New
+    model = train_snapshot_model(model, train_loader, val_loader, epochs=n_epochs, lr = lr, wd = wd,  reduction = reduction, save_path=save_path)   ##Changed
     
     return model

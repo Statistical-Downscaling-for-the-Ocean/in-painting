@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 
 
-class WeightedMSE:
+class WeightedMSE:  ##NEW
 
     def __init__(self, weights = None, reduction='mean'):
         self.reduction = reduction

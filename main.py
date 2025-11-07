@@ -28,35 +28,34 @@ from datetime import datetime
 
 # === Prepare Data ===
 main_dir = "/fs/site5/eccc/crd/ccrn/users/rpg002/stat_downscaling-workshop/FNO"
-data_dir = "/fs/site5/eccc/crd/ccrn/users/rpg002/stat_downscaling-workshop/data"
+data_dir = "/fs/site5/eccc/crd/ccrn/users/rpg002/stat_downscaling-workshop/data"  ##Changed
 
 
-now = datetime.now()
-formatted = now.strftime("%Y-%m-%d-%H:%M:%S")
-
-print(f'Started run with id : {formatted}')
-work_dir = f'{main_dir}/{formatted}'
-Path(work_dir).mkdir(parents=True, exist_ok=True)
+now = datetime.now() ##Changed
+formatted = now.strftime("%Y-%m-%d-%H:%M:%S") ##Changed
+print(f'Started run with id : {formatted}') ##Changed
+work_dir = f'{main_dir}/{formatted}' ##Changed
+Path(work_dir).mkdir(parents=True, exist_ok=True)  ##Changed
 
 train_data, val_data, test_data, stations, depths = prepare_data(
-    data_dir=data_dir,
+    data_dir=data_dir, ##Changed
     work_dir=work_dir,
     year_range=(1999, 2000),
     stations=["P22", "P23", "P24", "P25", "P26"],
     target_variable="Temperature",
-    train_ratio = 0.7,
-    val_ratio = 0.15
+    train_ratio = 0.7, ##Changed
+    val_ratio = 0.15  ##Changed
 )
 
 # === Train Model ===
-try:
+try: ##Changed
     save_path = f"{work_dir}/best_model.pt"
-    model = train_model(train_data, val_data, width = 20, num_layers = 1, modes1 = None, modes2 = None, batch_size = 2, n_epochs=200, lr=1e-3, wd=1e-5, reduction = 'mean_snap', save_path=save_path)
-except Exception as e:
-    import shutil
-    Path(main_dir + '/failed_cases').mkdir(parents=True, exist_ok=True)
-    shutil.move(work_dir, main_dir + '/failed_cases')
-    print("Terminated due to the follwoing error:\n", e)
+    model = train_model(train_data, val_data, width = 20, num_layers = 1, modes1 = None, modes2 = None, batch_size = 2, n_epochs=200, lr=1e-3, wd=1e-5, reduction = 'mean_snap', save_path=save_path) ##Changed
+except Exception as e: ##Changed
+    import shutil  ##Changed
+    Path(main_dir + '/failed_cases').mkdir(parents=True, exist_ok=True)  ##Changed
+    shutil.move(work_dir, main_dir + '/failed_cases')  ##Changed
+    print("Terminated due to the follwoing error:\n", e)  ##Changed
     raise  # 
 
 # === Evaluate Model ===

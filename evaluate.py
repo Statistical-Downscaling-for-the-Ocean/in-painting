@@ -45,12 +45,12 @@ def evaluate_model(model, test_loader, target_variable="Temperature", stations=N
     ys_pred_full = []
 
     with torch.no_grad():
-        for x, ys, mask in test_loader:
-            x = x.to(model.device if hasattr(model, "device") else "cuda" if torch.cuda.is_available() else "cpu")
-            ys = ys.to(model.device if hasattr(model, "device") else "cuda" if torch.cuda.is_available() else "cpu")
-            mask = mask.to(model.device if hasattr(model, "device") else "cuda" if torch.cuda.is_available() else "cpu")
+        for x, ys, mask in test_loader:  ##Changed
+            x = x.to(model.device if hasattr(model, "device") else "cuda" if torch.cuda.is_available() else "cpu")  ##Changed
+            ys = ys.to(model.device if hasattr(model, "device") else "cuda" if torch.cuda.is_available() else "cpu")  ##Changed
+            mask = mask.to(model.device if hasattr(model, "device") else "cuda" if torch.cuda.is_available() else "cpu")  ##Changed
 
-            out = model(x)  # [num_nodes]
+            out = model(x)  # [num_nodes]   ##Changed
 
             mask = torch.flatten(mask, start_dim = 1).cpu().numpy()        # [num_nodes]
             y_true = torch.flatten(ys, start_dim = 1).cpu().numpy()         # [num_nodes]

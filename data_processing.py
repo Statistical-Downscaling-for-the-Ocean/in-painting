@@ -193,7 +193,7 @@ def make_synthetic_linep(time, stations, depths) -> xr.Dataset:
 
     return ds
 
-def reshape_to_tcsd(ds_input: xr.DataArray, ds_target: xr.DataArray):
+def reshape_to_tcsd(ds_input: xr.DataArray, ds_target: xr.DataArray):    ##NEW
     ds_input = xr.concat([ds_input[var] for var in list(ds_input.data_vars)], dim = 'channels')
     ds_target = xr.concat([ds_target[var] for var in list(ds_target.data_vars)], dim = 'channels')
     mask = (~np.isnan(ds_target)).astype(int)
@@ -204,14 +204,14 @@ def reshape_to_tcsd(ds_input: xr.DataArray, ds_target: xr.DataArray):
 
 def prepare_data(
     work_dir: str,
-    data_dir: str,
+    data_dir: str,   ##Changed
     year_range: tuple[int, int],
     stations: list[str] | None = None,
-    # depths: list[float] | None = None,
+    # depths: list[float] | None = None,  ##Changed
     target_variable: str = "Temperature",
-    bathymetry_in : xr.DataArray | None = None,
-    train_ratio = 0.7,
-    val_ratio = 0.15
+    bathymetry_in : xr.DataArray | None = None,  ##Changed
+    train_ratio = 0.7,  ##Changed
+    val_ratio = 0.15   ##Changed
 
 ):
     
@@ -230,8 +230,8 @@ def prepare_data(
         ds = ds.sel(station=stations)
 
     #### For now to test but to be removed later ####
-    depths = [0.5, 10.5, 50.5, 100.5]  
-    ds = ds.sel(depth=depths)
+    depths = [0.5, 10.5, 50.5, 100.5]     ##Changed
+    ds = ds.sel(depth=depths)   ##Changed
     #################################################
 
     
@@ -245,9 +245,8 @@ def prepare_data(
     ds_input = make_synthetic_linep(ds_target['time'], ds_target['station'], ds_target['depth'])
     ds_input = ds_input.expand_dims('channels', axis = -3)
     # Add static variables
-    # ****** FAKE bathymetry values**********
-    if bathymetry_in is None:
-        bathymetry_in = (~np.isnan(ds_input)).astype(int).rename({target_variable : 'Bathymetry'})
+    if bathymetry_in is None:    ##Changed
+        bathymetry_in = (~np.isnan(ds_input)).astype(int).rename({target_variable : 'Bathymetry'})   ##Changed
 
     # ds_input = ds_input.fillna(0)
     ds_input["Bathymetry"] = bathymetry_in["Bathymetry"]
@@ -298,13 +297,13 @@ def prepare_data(
 
     # reshape data into graph structure, and compute target value mask
     print("\nPrepare Training:")
-    train_data = reshape_to_tcsd(ds_input_train_norm, ds_target_train_norm)
+    train_data = reshape_to_tcsd(ds_input_train_norm, ds_target_train_norm)  ##Changed
     print("Done")
-    print("\nPrepare Validation:")
-    val_data = reshape_to_tcsd(ds_input_val_norm, ds_target_val_norm)
+    print("\nPrepare Validation:")  
+    val_data = reshape_to_tcsd(ds_input_val_norm, ds_target_val_norm)   ##Changed
     print("Done")
     print("\nPrepare Testing:")
-    test_data = reshape_to_tcsd(ds_input_test_norm, ds_target_test_norm)
+    test_data = reshape_to_tcsd(ds_input_test_norm, ds_target_test_norm)   ##Changed
     print("Done")
 
     return train_data, val_data, test_data, stations, depths 
