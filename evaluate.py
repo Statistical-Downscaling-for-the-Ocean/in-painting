@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Adopted from https://github.com/Statistical-Downscaling-for-the-Ocean/graph-neural-net/blob/main/ by 
+Adopted from https://github.com/Statistical-Downscaling-for-the-Ocean/graph-neural-net/blob/main/ by
 @author: rlc001
 """
 
@@ -26,21 +26,21 @@ def denormalize_variable(var_name, data_norm, scale_params):
     else:
         return data_norm  # unchanged
 
-def evaluate_model(model, test_loader, target_variable="Temperature", stations=None, depths=None, work_dir="."):
-    
-    plot_dir = f"{work_dir}/plots"
-    Path(plot_dir).mkdir(parents=True, exist_ok=True)
+def evaluate_model(model, test_loader, target_variable="Temperature", stations=None, depths=None, work_dir=Path(".")):
+
+    plot_dir = work_dir / "plots"
+    plot_dir.mkdir(Parents=True, exist_ok=True)
     units = {
         'Temperature': 'deg C',
         'Salinity': 'PSU',
         'Oxygen': 'umol/kg'
         }
-    
+
     num_stations = len(stations)
     num_depths = len(depths)
-    
+
     model.eval()
-    
+
     ys_true_full = []
     ys_pred_full = []
 
@@ -65,14 +65,14 @@ def evaluate_model(model, test_loader, target_variable="Temperature", stations=N
 
     ys_true_full = np.stack(ys_true_full, axis=0)  # [time, nodes]
     ys_pred_full = np.stack(ys_pred_full, axis=0)
-    
-    
-    with open(f"{work_dir}/scale_params_target.json") as f:
+
+
+    with open(work_dir / "scale_params_target.json") as f:
         scale_params_target = json.load(f)
-    
+
     ys_pred_denorm = denormalize_variable(target_variable, ys_pred_full, scale_params_target)
     ys_true_denorm = denormalize_variable(target_variable, ys_true_full, scale_params_target)
-    
+
     # Flatten only valid values for metrics
     valid_mask = ~np.isnan(ys_true_denorm)
     ys_true_valid = ys_true_denorm[valid_mask]
@@ -102,7 +102,7 @@ def evaluate_model(model, test_loader, target_variable="Temperature", stations=N
     plt.title(f"Scatter: RMSE={rmse:.3f} {units[target_variable]}, R²={r2:.3f}")
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
-    plt.savefig(f"{plot_dir}/scatter_pred_vs_obs.png", dpi=150)
+    plt.savefig(plot_dir / "scatter_pred_vs_obs.png", dpi=150)
 
     # 2. Residual histogram
     plt.figure(figsize=(6, 4))
@@ -111,13 +111,13 @@ def evaluate_model(model, test_loader, target_variable="Temperature", stations=N
     plt.xlabel(f"Residual [{units[target_variable]}]")
     plt.ylabel("Count")
     plt.tight_layout()
-    plt.savefig(f"{plot_dir}/residual_hist.png", dpi=150)
+    plt.savefig(plot_dir / "residual_hist.png", dpi=150)
 
     # 3. Depth–Station heatmap of mean residuals
     mean_resid = np.nanmean(ys_pred_full - ys_true_full, axis=0)  # mean across time
     resid_2d = mean_resid.reshape(num_stations, num_depths)
     resid_2d_plot = resid_2d.T # shape: (num_depths, num_stations)
-    
+
     plt.figure(figsize=(6, 4))
     plt.imshow(resid_2d_plot, cmap='coolwarm', aspect='auto', origin='lower')
     plt.colorbar(label="Residual (Pred - Obs) [{units[target_variable]}]")
@@ -134,6 +134,8 @@ def evaluate_model(model, test_loader, target_variable="Temperature", stations=N
     plt.title("Mean Residual by Station/Depth")
     plt.gca().invert_yaxis()
     plt.tight_layout()
-    plt.savefig(f"{plot_dir}/residual_heatmap.png", dpi=150)
+    plt.savefig(plot_dir / "residual_heatmap.png", dpi=150)
+
+    np.savez(work_dir / "output.npz", ys_true_full, ys_pred_full)
 
     return ys_true_full, ys_pred_full
