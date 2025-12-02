@@ -237,7 +237,7 @@ def prepare_data(
 
     #### For now to test but to be removed later ####
     print('==========================================================\n'+
-        'Warning! In this protocode only a  depth points are selcted! Edit for the actual training! \n' + 
+        'Warning! In this protocode only 4 depth points are selcted! Edit for the actual training! \n' + 
         '==========================================================\n')
     depths = [0.5, 25.5, 50.5, 75.5]     ##Changed
     ds = ds.sel(depth=depths)   ##Changed
