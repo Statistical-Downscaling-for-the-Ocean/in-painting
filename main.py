@@ -28,11 +28,14 @@ from argparse import ArgumentParser
 
 def main(output_dir, data_dir):
 
-    now = datetime.now() ##Changed
-    formatted = now.strftime("%Y-%m-%d-%H:%M:%S") ##Changed
-    print(f'Started run with id : {formatted}') ##Changed
-    work_dir = output_dir / formatted
-    work_dir.mkdir(parents=True, exist_ok=True)  ##Changed
+# === Prepare Data ===
+# main_dir = "/fs/site5/eccc/crd/ccrn/users/rpg002/stat_downscaling-workshop/FNO"
+# data_dir = "/fs/site5/eccc/crd/ccrn/users/rpg002/stat_downscaling-workshop/data" 
+
+main_dir = "/path/to/my/projects/line_p/"
+data_dir = "/path/to/my/projects/line_p/data/observation"
+
+data_dir = Path(data_dir)
 
     # === Prepare Data ===
     train_data, val_data, test_data, stations, depths = prepare_data(

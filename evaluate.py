@@ -120,7 +120,7 @@ def evaluate_model(model, test_loader, target_variable="Temperature", stations=N
 
     plt.figure(figsize=(6, 4))
     plt.imshow(resid_2d_plot, cmap='coolwarm', aspect='auto', origin='lower')
-    plt.colorbar(label="Residual (Pred - Obs) [{units[target_variable]}]")
+    plt.colorbar(label=f"Residual (Pred - Obs) [{units[target_variable]}]")
     if depths is not None:
         if type(depths) == xr.DataArray:
             depths = depths.values

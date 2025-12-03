@@ -19,8 +19,9 @@ def load_ctd_data(ctd_data_file, start_year, end_year):
     Load and process CTD csv files for a given year range.
     Returns an xarray.Dataset with dimensions (depth, station, time)).
     """
+    
+    df_all = pd.read_csv(data_dir, comment="#")
 
-    df_all = pd.read_csv(ctd_data_file, comment="#")
     df_all["TIME"] = pd.to_datetime(df_all["TIME"], format="%Y-%m-%d %H:%M:%S")
     df_all = df_all.rename(
         columns={
@@ -29,25 +30,30 @@ def load_ctd_data(ctd_data_file, start_year, end_year):
             "TEMPERATURE": "Temperature",
             "SALINITY": "Salinity",
             "OXYGEN_UMOL_KG": "Oxygen",
-            "PRESSURE_BIN_CENTER": "Depth",
+            "PRESSURE_BIN_CNTR": "Depth",
             "TIME": "time",
-            "STATION_ID": "station"
+            "STATION_ID": "station",
         }
     )
 
-    year_format = lambda x: f"{x}-01-01"
-    daterange = pd.date_range(year_format(start_year), year_format(end_year+1))
-    df_all = df_all[df_all["time"].isin(daterange)]
-
-    # Convert the station IDs to just the station number
-    df_all["station"] = df_all["station"].str.lstrip("P")
+    start_date = pd.Timestamp(f"{start_year}-01-01")
+    end_date = pd.Timestamp(f"{end_year+1}-01-01")
+    df_all = df_all[(df_all["time"] >= start_date) & (df_all["time"] < end_date)]
 
     # Sort and get unique coords
     depths = np.sort(df_all["Depth"].unique())
-    stations = np.sort(df_all["station"].unique())
-    times = np.sort(df_all["time"].unique())
+    stations = sorted(
+        df_all["station"].unique(),
+        key=lambda x: int(''.join(filter(str.isdigit, x)))
+    )
+    stations.remove('P26')
+    stations.append('P26')
 
-    # Build arrays
+    times = np.sort(df_all["time"].unique())
+    longitudes = np.array([df_all[df_all['station'] == s]['Longitude'].mean() for s in stations])
+    latitudes = np.array([df_all[df_all['station'] == s]['Latitude'].mean() for s in stations])
+    distances = np.array([0 if ind == 0 else haversine(latitudes[ind], longitudes[ind], latitudes[ind - 1], longitudes[ind - 1]) for ind, s in enumerate(stations)])
+     # # Build arrays
     variables = ["Temperature", "Salinity", "Oxygen", "Latitude", "Longitude"]
     data_dict = {var: np.full((len(times), len(stations), len(depths)), np.nan) for var in variables}
 
@@ -70,12 +76,18 @@ def load_ctd_data(ctd_data_file, start_year, end_year):
         coords={
             "time": times,
             "station": stations,
+            "lat" : latitudes,
+            "lon" : longitudes,
+            "distance" : distances,
             "depth": depths
         },
     )
+
+    print(ds)
+
     ds["depth"].attrs["units"] = "m"
     ds["Temperature"].attrs["units"] = "deg C"
-    ds["Salinity"].attrs["units"] = "PSS-78"
+    ds["Salinity"].attrs["units"] = "PSU"
     ds["Oxygen"].attrs["units"] = "umol/kg"
     ds["Longitude"].attrs["units"] = "deg"
     ds["Latitude"].attrs["units"] = "deg"
@@ -223,7 +235,13 @@ def prepare_data(
         print(ds.station)
         ds = ds.sel(station=station_numbers)
 
-    ds = ds.sel(depth=depths)
+    #### For now to test but to be removed later ####
+    print('==========================================================\n'+
+        'Warning! In this protocode only 4 depth points are selcted! Edit for the actual training! \n' + 
+        '==========================================================\n')
+    depths = [0.5, 25.5, 50.5, 75.5]     ##Changed
+    ds = ds.sel(depth=depths)   ##Changed
+    #################################################
 
     ds_target = ds[[target_variable]]
     stations = ds_target['station']
@@ -259,11 +277,19 @@ def prepare_data(
 
     ds_input_train = ds_input.isel(time=slice(0, train_end))
     ds_input_val   = ds_input.isel(time=slice(train_end, val_end))
-    ds_input_test  = ds_input.isel(time=slice(val_end, T))
 
     ds_target_train = ds_target.isel(time=slice(0, train_end))
     ds_target_val   = ds_target.isel(time=slice(train_end, val_end))
-    ds_target_test  = ds_target.isel(time=slice(val_end, T))
+
+    if train_ratio + val_ratio < 1:
+        ds_input_test  = ds_input.isel(time=slice(val_end, T))
+        ds_target_test  = ds_target.isel(time=slice(val_end, T))
+    else:
+        print('==========================================================\n'+
+              'Test split ratio is zero. Test set is the same as validation set! \n' + 
+              '==========================================================\n')
+        ds_input_test  = ds_input_val.copy()
+        ds_target_test  = ds_target_val.copy()
 
     # Normalization
     # Compute scale parameters from training data and apply to validation and test
@@ -296,4 +322,25 @@ def prepare_data(
     test_data = reshape_to_tcsd(ds_input_test_norm, ds_target_test_norm)   ##Changed
     print("Done")
 
-    return train_data, val_data, test_data, stations, depths
+    return train_data, val_data, test_data, stations, depths 
+
+
+
+
+def haversine(la0,lo0,la1,lo1):
+    """ haversine formula with numpy array handling
+    Calculates spherical distance between points on Earth in meters
+    Compares elements of (la0,lo0) with (la1,lo1)
+    Shapes must be compatible with numpy array broadcasting
+    args: lats and lons in decimal degrees
+    returns: distance on sphere with volumetric mean Earth radius in meters
+    """
+    rEarth=6371*1e3 # 
+    # convert to radians
+    la0=np.radians(la0)
+    la1=np.radians(la1)
+    lo0=np.radians(lo0)
+    lo1=np.radians(lo1)
+    theta=2*np.arcsin(np.sqrt(np.sin((la0-la1)/2)**2+np.cos(la0)*np.cos(la1)*np.sin((lo0-lo1)/2)**2))
+    d=rEarth*theta
+    return d
